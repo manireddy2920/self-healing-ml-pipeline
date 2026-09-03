@@ -29,7 +29,14 @@ jobs:
           cache: "pip"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: |
+          pip install --upgrade pip
+          pip install sqlalchemy alembic pydantic pydantic-settings \
+                      python-jose passlib "bcrypt==3.2.2" \
+                      fastapi "uvicorn[standard]" python-multipart \
+                      scikit-learn lightgbm numpy pandas scipy pyarrow \
+                      mlflow httpx python-dotenv structlog tenacity \
+                      pytest pytest-cov pytest-asyncio
 
       - name: Lint
         run: python -m ruff check src/ --select E,F,W --ignore E501,W291,W293
