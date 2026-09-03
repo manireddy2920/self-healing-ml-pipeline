@@ -212,3 +212,5 @@ Evidently only reports drift. This system adds: debounce + cooldown trigger logi
 ## Resume Bullet
 
 > *"Built a self-healing MLOps pipeline (Prefect, MLflow, FastAPI, PostgreSQL, Streamlit) that auto-detects data drift via statistical + learned detectors, gates retrained models behind a champion/challenger validation step with critical-slice recall protection, and exposes an RBAC-authenticated audit dashboard — validated with 152 automated tests and A/B/C experiments showing the validation gate prevents model regression that naive retraining causes."*
+
+<!-- ci trigger -->
