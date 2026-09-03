@@ -1,0 +1,122 @@
+services:
+
+  # ── PostgreSQL ───────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: shlp
+      POSTGRES_PASSWORD: shlp_secret
+      POSTGRES_DB: shlp
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shlp"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── MLflow ───────────────────────────────────────────────────────────────────
+  mlflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri postgresql+psycopg2://shlp:shlp_secret@postgres:5432/shlp
+      --default-artifact-root /app/mlruns
+    volumes:
+      - mlflow_artifacts:/app/mlruns
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── FastAPI ───────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://shlp:shlp_secret@postgres:5432/shlp
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      DATA_DIR: /app/data
+      REFERENCE_PATH: /app/data/reference.parquet
+    volumes:
+      - ./data:/app/data
+      - mlflow_artifacts:/app/mlruns
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mlflow:
+        condition: service_started
+    restart: unless-stopped
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m src.retraining.baseline &&
+             uvicorn src.serving.api:app --host 0.0.0.0 --port 8000"
+
+  # ── Prefect Server ─────────────────────────────────────────────────────────
+  prefect-server:
+    image: prefecthq/prefect:2-python3.11
+    command: prefect server start --host 0.0.0.0
+    environment:
+      PREFECT_API_DATABASE_CONNECTION_URL: >-
+        postgresql+asyncpg://shlp:shlp_secret@postgres:5432/shlp
+      PREFECT_UI_API_URL: http://localhost:4200/api
+    ports:
+      - "4200:4200"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ── Prefect Worker ─────────────────────────────────────────────────────────
+  prefect-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://shlp:shlp_secret@postgres:5432/shlp
+      MLFLOW_TRACKING_URI: http://mlflow:5000
+      PREFECT_API_URL: http://prefect-server:4200/api
+      DATA_DIR: /app/data
+      REFERENCE_PATH: /app/data/reference.parquet
+    volumes:
+      - ./data:/app/data
+      - mlflow_artifacts:/app/mlruns
+    depends_on:
+      - api
+      - prefect-server
+    command: >
+      sh -c "sleep 10 &&
+             python -m src.orchestration.pipeline &&
+             prefect worker start --pool default-agent-pool"
+    restart: unless-stopped
+
+  # ── Streamlit Dashboard ────────────────────────────────────────────────────
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    env_file: .env
+    environment:
+      STREAMLIT_API_URL: http://api:8000
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  mlflow_artifacts:

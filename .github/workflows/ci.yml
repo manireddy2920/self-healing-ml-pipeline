@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    env:
+      OMP_NUM_THREADS: "1"
+      OPENBLAS_NUM_THREADS: "1"
+      DATABASE_URL: "sqlite:///./test_shlp.db"
+      MLFLOW_TRACKING_URI: "sqlite:///./test_mlruns.db"
+      MLFLOW_EXPERIMENT_NAME: "shlp_ci"
+      JWT_SECRET_KEY: "ci_test_secret_key"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+        working-directory: shlp
+
+      - name: Lint (ruff)
+        run: ruff check src/ --select E,F,W --ignore E501
+        working-directory: shlp
+        continue-on-error: true   # warnings only — don't block CI
+
+      - name: Run unit + integration tests
+        run: >
+          python -m pytest tests/
+          -v --tb=short
+          --ignore=tests/test_integration.py
+          --cov=src --cov-report=xml --cov-report=term-missing
+        working-directory: shlp
+
+      - name: Run integration tests
+        run: >
+          python -m pytest tests/test_integration.py
+          -v --tb=short --no-cov
+        working-directory: shlp
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v4
+        with:
+          files: shlp/coverage.xml
+          fail_ci_if_error: false

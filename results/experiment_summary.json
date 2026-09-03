@@ -1,0 +1,35 @@
+[
+  {
+    "config": "A",
+    "detector_precision": 1.0,
+    "detector_recall": 1.0,
+    "detector_f1": 1.0,
+    "detection_lag_batches": 0,
+    "total_promotions": 0,
+    "total_rejections": 5,
+    "rollback_rate": 1.0,
+    "avg_f1_post_drift": 0.076
+  },
+  {
+    "config": "B",
+    "detector_precision": null,
+    "detector_recall": null,
+    "detector_f1": null,
+    "detection_lag_batches": null,
+    "total_promotions": 10,
+    "total_rejections": 0,
+    "rollback_rate": 0.0,
+    "avg_f1_post_drift": 0.096
+  },
+  {
+    "config": "C",
+    "detector_precision": null,
+    "detector_recall": null,
+    "detector_f1": null,
+    "detection_lag_batches": null,
+    "total_promotions": 0,
+    "total_rejections": 0,
+    "rollback_rate": null,
+    "avg_f1_post_drift": 0.076
+  }
+]
