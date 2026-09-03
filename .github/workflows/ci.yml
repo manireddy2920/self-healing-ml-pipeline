@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [main, master, develop]
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
   test:
@@ -16,7 +16,8 @@ jobs:
       DATABASE_URL: "sqlite:///./test_shlp.db"
       MLFLOW_TRACKING_URI: "sqlite:///./test_mlruns.db"
       MLFLOW_EXPERIMENT_NAME: "shlp_ci"
-      JWT_SECRET_KEY: "ci_test_secret_key"
+      JWT_SECRET_KEY: "ci_test_secret_key_32chars_long_x"
+      PYTHONPATH: "."
 
     steps:
       - uses: actions/checkout@v4
@@ -29,29 +30,35 @@ jobs:
 
       - name: Install dependencies
         run: pip install -e ".[dev]"
-        working-directory: shlp
 
-      - name: Lint (ruff)
-        run: ruff check src/ --select E,F,W --ignore E501
-        working-directory: shlp
-        continue-on-error: true   # warnings only — don't block CI
+      - name: Lint
+        run: python -m ruff check src/ --select E,F,W --ignore E501,W291,W293
+        continue-on-error: true
 
-      - name: Run unit + integration tests
+      - name: Run unit tests (fast)
         run: >
-          python -m pytest tests/
-          -v --tb=short
-          --ignore=tests/test_integration.py
-          --cov=src --cov-report=xml --cov-report=term-missing
-        working-directory: shlp
+          python -m pytest
+          tests/test_db.py
+          tests/test_ingestion.py
+          tests/test_drift.py
+          tests/test_trigger.py
+          -v --tb=short --no-cov -q
+
+      - name: Run API + pipeline tests
+        run: >
+          python -m pytest
+          tests/test_api.py
+          tests/test_pipeline.py
+          -v --tb=short --no-cov -q
+
+      - name: Run training tests
+        run: >
+          python -m pytest
+          tests/test_training.py
+          -v --tb=short --no-cov -q
 
       - name: Run integration tests
         run: >
-          python -m pytest tests/test_integration.py
-          -v --tb=short --no-cov
-        working-directory: shlp
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: shlp/coverage.xml
-          fail_ci_if_error: false
+          python -m pytest
+          tests/test_integration.py
+          -v --tb=short --no-cov -q
