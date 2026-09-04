@@ -8,7 +8,8 @@
     "total_promotions": 0,
     "total_rejections": 5,
     "rollback_rate": 1.0,
-    "avg_f1_post_drift": 0.076
+    "avg_f1_on_drifted_batches": 0.076,
+    "avg_f1_on_reference": 0.3271
   },
   {
     "config": "B",
@@ -19,7 +20,8 @@
     "total_promotions": 10,
     "total_rejections": 0,
     "rollback_rate": 0.0,
-    "avg_f1_post_drift": 0.096
+    "avg_f1_on_drifted_batches": 0.096,
+    "avg_f1_on_reference": 0.0134
   },
   {
     "config": "C",
@@ -30,6 +32,7 @@
     "total_promotions": 0,
     "total_rejections": 0,
     "rollback_rate": null,
-    "avg_f1_post_drift": 0.076
+    "avg_f1_on_drifted_batches": 0.076,
+    "avg_f1_on_reference": 0.3271
   }
 ]

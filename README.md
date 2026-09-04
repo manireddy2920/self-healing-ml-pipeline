@@ -120,11 +120,22 @@ python -m pytest tests/ -v
 
 ### A/B/C Comparison (severe drift, shift_mean = 2.0)
 
-| Config | Description | Det. Precision | Det. Recall | Det. F1 | Avg F1 (drifted batches) | Promotions | Rejections | Rollback rate |
-|---|---|---|---|---|---|---|---|---|
-| **A** | Full system (drift check + gate) | **1.00** | **1.00** | **1.00** | **0.0760** | 0 | 5 | **100%** |
-| B | Naive retrain every batch (no gate) | N/A | N/A | N/A | 0.0960 | 10 | 0 | 0% |
-| C | Static model (never retrain) | N/A | N/A | N/A | 0.0760 | 0 | 0 | N/A |
+Two metrics are reported. They tell different stories and both matter:
+
+- **F1 on drifted batches** — how well the deployed model scores on the *incoming drifted data*. Higher is not obviously better: Config B scores high here by overfitting to drift noise.
+- **F1 on clean reference** — how well the deployed model generalises on held-out *clean* data. This is the production-honest metric: a model that regresses here has silently degraded.
+
+| Config | Description | Det. P | Det. R | Det. F1 | F1 (drifted batches) | F1 (clean reference) | Promotions | Rejections | Rollback% |
+|---|---|---|---|---|---|---|---|---|---|
+| **A** | Full system | **1.00** | **1.00** | **1.00** | 0.0760 | **0.3271** | 0 | 5 | 100% |
+| B | Naive retrain (no gate) | N/A | N/A | N/A | **0.0960** | **0.0134** | 10 | 0 | 0% |
+| C | Static (never retrain) | N/A | N/A | N/A | 0.0760 | 0.3271 | 0 | 0 | N/A |
+
+**Reading the table:**
+- Config B achieves higher F1 on drifted batches (0.096 vs 0.076) because it constantly retrains on the current drifted distribution — the model fits the noise.
+- But Config B's F1 on the clean reference collapses to **0.013** — a **96% drop** from Config A's 0.327. This is the regression the validation gate exists to prevent.
+- Config A (full system) maintains the clean-data champion throughout. The gate correctly rejected all 5 challengers that were trained on small drifted batches and would have caused this regression.
+- Config C (static) matches Config A on both metrics — showing the champion trained on clean data is robust. The advantage of Config A over C is the *detection* capability and the *readiness to promote* a genuinely better challenger when one exists.
 
 ### Sensitivity Analysis (Config A detector only)
 
@@ -141,8 +152,8 @@ The composite detector (KS-test + PSI + domain classifier AUC) correctly flags a
 **On Config A rollback rate = 100%:**
 All 5 challengers were rejected by the validation gate. This is the correct and expected behavior when challenger models are trained on 2,000-row drifted batches and evaluated against a champion trained on 5,000 stable rows. The drifted batches do not contain enough labeled signal to produce a model that beats the clean-data champion on the shared holdout. This demonstrates the gate is functioning correctly — it does not auto-promote noisy models. To see a promotion, increase `N_PER_BATCH` in `scripts/run_experiments.py` to ≥ 5,000. The key result is that Config B (no gate, forced swap every batch) achieves avg F1 = 0.096 on drifted batches — **26% higher than Config A and C**, which sounds good but is explained by overfitting to drift noise: Config B's model is always freshly trained on the latest drifted batch, so it fits that batch's noise. Config A and C correctly preserve the more generalizable champion trained on clean data.
 
-**On Config B avg F1 being higher:**
-This is intentional and honest. Naive retraining achieves higher average F1 on drifted batches in this experiment because it constantly retrains on the current drifted distribution. In production this is dangerous — it means the model has silently adapted to potentially corrupted inputs with no validation gate, no audit trail, and no rollback path. The rollback rate of 0% in Config B means a bad model would be deployed with no checks.
+**On Config B avg F1 on drifted batches being higher:**
+This is correct and explained. Config B retrains on each drifted batch so it always fits the current distribution — giving higher in-distribution F1. But evaluated on the clean reference holdout (the production-honest metric), Config B collapses to F1 = 0.013 vs Config A's 0.327. The validation gate in Config A prevents exactly this regression from reaching production.
 
 ### Charts
 All charts (PNG + SVG) are in `results/charts/`:
@@ -221,8 +232,8 @@ The composite detector combines three independent signals. Mild drift (shift=0.3
 **Q: Why did the gate reject 100% of challengers?**
 Challengers trained on 2,000-row drifted batches are evaluated against a champion trained on 5,000 clean rows. The holdout set is drawn from the clean reference distribution, so a model trained on drifted data will score lower on it. This is correct — the gate should not promote a model that performs worse on held-out clean data. It demonstrates the non-regression safety property.
 
-**Q: Why does Config B (naive retrain) have higher F1 than Config A?**
-Config B retrains on the current drifted batch, so it fits that distribution — giving higher F1 on those same drifted batches. But it has no gate, no audit trail, and no rollback. In production this means a model that overfit to corrupted inputs would be silently deployed. Config A keeps the generalizable champion and correctly rejects models that only fit noise.
+**Q: Config B has higher F1 on drifted batches than Config A — doesn't that mean naive retraining is better?**
+No. Config B's F1 on drifted batches is 0.096 vs Config A's 0.076 — Config B looks better because it constantly retrains on the current drifted distribution, fitting the noise. But Config B's F1 on the clean reference holdout collapses to 0.013 vs Config A's 0.327 — a 96% regression. This is the exact failure the validation gate is designed to prevent: a model that silently adapts to corrupted inputs and loses its ability to generalise.
 
 **Q: Why not retrain on every batch (Config B)?**
 Config B achieves 0% rollback rate — every retrain is blindly deployed. If a batch contains noise, mislabeled data, or a temporary anomaly, the model degrades with no protection. The validation gate in Config A is what makes the system "self-healing" rather than just "auto-retraining."
