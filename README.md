@@ -1,6 +1,11 @@
 # Self-Healing ML Pipeline
 ### B.Tech Major Project — BVRIT, Department of AI & Data Science
 
+![CI](https://github.com/manireddy2920/self-healing-ml-pipeline/actions/workflows/ci.yml/badge.svg)
+![Python](https://img.shields.io/badge/python-3.11-blue)
+![Tests](https://img.shields.io/badge/tests-152%20passing-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 A production-grade MLOps system that continuously monitors deployed models for data/concept drift, automatically triggers and validates retraining, safely promotes or rolls back models, and logs every decision to an authenticated, role-based audit dashboard.
 
 ---
