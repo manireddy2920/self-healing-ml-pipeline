@@ -1,10 +1,10 @@
-"""
-Module 15 — Full Integration Test.
+﻿"""
+Module 15 â€” Full Integration Test.
 
 Simulates the complete self-healing loop on synthetic data:
   1. Baseline model trained + registered
-  2. Stable batches → no trigger
-  3. Drifted batches → trigger fires after debounce
+  2. Stable batches â†’ no trigger
+  3. Drifted batches â†’ trigger fires after debounce
   4. Retraining + validation gate
   5. Champion promoted (or rollback kept)
   6. Audit log completeness verified
@@ -27,7 +27,7 @@ from src.ingestion.generator import generate_batch, generate_reference, DriftSpe
 from src.ingestion.schema import TARGET
 
 
-# ── Shared expensive fixtures ──────────────────────────────────────────────────
+# â”€â”€ Shared expensive fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @pytest.fixture(scope="module")
 def integration_env(tmp_path_factory):
@@ -39,7 +39,7 @@ def integration_env(tmp_path_factory):
     - Trained baseline champion
     """
     d = tmp_path_factory.mktemp("integration")
-    ref_path = str(d / "reference.parquet")
+    ref_path = str(d / "reference.csv")
     data_dir = str(d / "data")
     os.makedirs(data_dir, exist_ok=True)
 
@@ -98,14 +98,14 @@ def integration_env(tmp_path_factory):
     db.close()
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # Integration tests
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 class TestFullLoop:
 
     def test_stable_batches_do_not_trigger(self, integration_env):
-        """3 stable windows → no trigger fired."""
+        """3 stable windows â†’ no trigger fired."""
         from src.drift.trigger import TriggerController
         from src.ingestion.loader import DataLoader
 
@@ -122,7 +122,7 @@ class TestFullLoop:
         assert not any(triggers), f"Stable windows triggered: {triggers}"
 
     def test_drifted_batch_triggers_retraining(self, integration_env):
-        """1 strongly drifted window (debounce=1) → trigger fires."""
+        """1 strongly drifted window (debounce=1) â†’ trigger fires."""
         from src.drift.trigger import TriggerController
         from src.ingestion.loader import DataLoader
 
@@ -201,7 +201,7 @@ class TestFullLoop:
         """Drift events from stable + drifted windows should be in DB."""
         db = integration_env["db"]
         events = db.query(db_models.DriftEvent).all()
-        assert len(events) >= 4, f"Expected ≥4 drift events, got {len(events)}"
+        assert len(events) >= 4, f"Expected â‰¥4 drift events, got {len(events)}"
 
     def test_drift_score_higher_for_drifted_batches(self, integration_env):
         """Drifted events should have higher composite scores than stable ones."""
@@ -217,13 +217,13 @@ class TestFullLoop:
             avg_stable = sum(stable) / len(stable)
             avg_drifted = sum(drifted) / len(drifted)
             assert avg_drifted > avg_stable, (
-                f"Drifted score {avg_drifted:.4f} ≤ stable score {avg_stable:.4f}"
+                f"Drifted score {avg_drifted:.4f} â‰¤ stable score {avg_stable:.4f}"
             )
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # API auth failure tests
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 class TestAPIAuthFailures:
     """Verify auth failure cases against the real FastAPI TestClient."""
@@ -324,3 +324,4 @@ def test_predict_503_when_no_model(auth_client):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert r.status_code == 503
+

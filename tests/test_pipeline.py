@@ -1,4 +1,4 @@
-"""
+﻿"""
 Modules 8, 9, 10 integration tests.
 
 Tests cover:
@@ -26,7 +26,7 @@ from src.ingestion.generator import generate_batch, generate_reference
 from src.ingestion.schema import ALL_FEATURES, TARGET
 
 
-# ── DB fixture (fresh in-memory DB per test) ──────────────────────────────────
+# â”€â”€ DB fixture (fresh in-memory DB per test) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 @pytest.fixture
 def db():
@@ -40,7 +40,7 @@ def db():
     session.close()
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def _seed_champion(db, artifact_path: str, metric_value: float = 0.75) -> db_models.ModelVersion:
     """Insert a champion model row with a known artifact URI."""
@@ -97,9 +97,9 @@ def _train_and_get_uri(df, n_estimators=10):
     return result.mlflow_model_uri, result.metrics
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Module 10 — Audit Logging (pure unit tests, no ML)
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# Module 10 â€” Audit Logging (pure unit tests, no ML)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 class TestAuditLogging:
     def test_write_creates_row(self, db):
@@ -109,7 +109,7 @@ class TestAuditLogging:
         assert entry.action == Actions.DRIFT_DETECTED
 
     def test_immutability_insert_only(self, db):
-        """Rows should never be modified after creation — we just verify the
+        """Rows should never be modified after creation â€” we just verify the
         service never calls UPDATE (audit_write only does INSERT)."""
         e1 = audit_write(db, actor="a", action=Actions.RETRAIN_TRIGGERED)
         e2 = audit_write(db, actor="b", action=Actions.MODEL_PROMOTED)
@@ -165,9 +165,9 @@ class TestAuditLogging:
         assert len(rows) == 5
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Module 9 — Validation Gate (uses real trained models)
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# Module 9 â€” Validation Gate (uses real trained models)
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 class TestValidationGate:
     @pytest.fixture(scope="class")
@@ -179,7 +179,7 @@ class TestValidationGate:
         os.environ["MLFLOW_EXPERIMENT_NAME"] = "gate_test"
 
         # Reference data used as validation holdout
-        ref = generate_reference(n=3_000, seed=0, output_path=str(d / "ref.parquet"))
+        ref = generate_reference(n=3_000, seed=0, output_path=str(d / "ref.csv"))
 
         # Train a "good" challenger
         good_uri, good_metrics = _train_and_get_uri(
@@ -190,7 +190,7 @@ class TestValidationGate:
             generate_batch(n=200, seed=999, drift_alpha=1.0), n_estimators=5
         )
         return {
-            "ref_path": str(d / "ref.parquet"),
+            "ref_path": str(d / "ref.csv"),
             "good_uri": good_uri,
             "good_metrics": good_metrics,
             "bad_uri": bad_uri,
@@ -267,7 +267,7 @@ class TestValidationGate:
                 id=champ.id
             ).first()
             assert champ_reloaded.stage == "champion", (
-                "Champion stage changed after rejected challenger — safety violated!"
+                "Champion stage changed after rejected challenger â€” safety violated!"
             )
             # Challenger archived
             chal_reloaded = db.query(db_models.ModelVersion).filter_by(
@@ -313,7 +313,7 @@ class TestValidationGate:
         ).first()
         assert still_champion is not None, "No champion in DB after rejection!"
         assert still_champion.id == champ.id, (
-            "A different model is now champion — safety property violated!"
+            "A different model is now champion â€” safety property violated!"
         )
 
     def test_promotion_writes_audit_log(self, db, models_and_data):
@@ -361,7 +361,7 @@ class TestValidationGate:
         assert Actions.MODEL_ROLLBACK_KEPT in actions
 
     def test_first_model_auto_promoted(self, db, models_and_data):
-        """No existing champion → any challenger is auto-promoted."""
+        """No existing champion â†’ any challenger is auto-promoted."""
         from src.config import get_settings
         from src.validation.gate import ValidationGate
 
@@ -400,18 +400,18 @@ class TestValidationGate:
         assert 0.0 <= decision.candidate_metric <= 1.0
 
 
-# ══════════════════════════════════════════════════════════════════════════════
-# Module 8 — Retraining Runner
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+# Module 8 â€” Retraining Runner
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 class TestRetrainingRunner:
     @pytest.fixture(autouse=True)
     def patch_reference(self, tmp_path):
-        """Create a reference.parquet so loader doesn't fail."""
+        """Create a reference.csv so loader doesn't fail."""
         from src.config import get_settings
         import os
         cfg = get_settings()
-        ref_path = str(tmp_path / "reference.parquet")
+        ref_path = str(tmp_path / "reference.csv")
         generate_reference(n=2_000, seed=0, output_path=ref_path)
         original = cfg.reference_path
         cfg.__dict__["reference_path"] = ref_path
@@ -443,7 +443,7 @@ class TestRetrainingRunner:
         try:
             run_retraining_job(job.id)
         except Exception:
-            pass  # gate may fail due to shared session — job creation is what we test
+            pass  # gate may fail due to shared session â€” job creation is what we test
         finally:
             runner_mod.SessionLocal = original_sl_runner
             gate_mod.SessionLocal = original_sl_gate
@@ -456,7 +456,7 @@ class TestRetrainingRunner:
         """If training raises (e.g. missing data), job status must be 'failed'."""
         from src.config import get_settings
         cfg = get_settings()
-        cfg.__dict__["reference_path"] = "/nonexistent_path/ref.parquet"
+        cfg.__dict__["reference_path"] = "/nonexistent_path/ref.csv"
 
         import src.retraining.runner as runner_mod
         from sqlalchemy.orm import sessionmaker
@@ -480,9 +480,9 @@ class TestRetrainingRunner:
         assert updated.status == "failed"
 
 
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 # Failure injection test (Module 9 gate rejects corrupted batch)
-# ══════════════════════════════════════════════════════════════════════════════
+# â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 def test_gate_rejects_model_trained_on_corrupted_batch(tmp_path):
     """
@@ -500,7 +500,7 @@ def test_gate_rejects_model_trained_on_corrupted_batch(tmp_path):
     Session = sessionmaker(bind=engine)
     db = Session()
 
-    ref_path = str(tmp_path / "reference.parquet")
+    ref_path = str(tmp_path / "reference.csv")
     generate_reference(n=3_000, seed=0, output_path=ref_path)
 
     cfg = get_settings()
@@ -547,3 +547,4 @@ def test_gate_rejects_model_trained_on_corrupted_batch(tmp_path):
     finally:
         cfg.__dict__["reference_path"] = original_ref
         db.close()
+

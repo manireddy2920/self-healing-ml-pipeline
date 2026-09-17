@@ -175,7 +175,10 @@ def generate_reference(
     )
     if output_path:
         Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-        df.to_parquet(output_path, index=False)
+        if str(output_path).endswith(".csv"):
+            df.to_csv(output_path, index=False)
+        else:
+            df.to_parquet(output_path, index=False)
     return df
 
 

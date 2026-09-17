@@ -44,7 +44,7 @@ class DataLoader:
     # â”€â”€ Production batches â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def load_batch(self, path: str) -> pd.DataFrame:
-        df = pd.read_parquet(path)
+        df = pd.read_csv(path) if str(path).endswith('.csv') else pd.read_parquet(path)
         self._validate(df)
         return df
 
@@ -55,8 +55,8 @@ class DataLoader:
     def save_batch(self, df: pd.DataFrame, name: str) -> str:
         out_dir = Path(self._cfg.data_dir) / "batches"
         out_dir.mkdir(parents=True, exist_ok=True)
-        path = str(out_dir / f"{name}.parquet")
-        df.to_parquet(path, index=False)
+        path = str(out_dir / f"{name}.csv")
+        df.to_csv(path, index=False)
         return path
 
     def get_recent_window(self, window_days: Optional[int] = None) -> pd.DataFrame:
@@ -72,8 +72,8 @@ class DataLoader:
             return pd.DataFrame(columns=ALL_FEATURES + [TARGET])
 
         frames = []
-        for f in sorted(batch_dir.glob("*.parquet")):
-            df = pd.read_parquet(f)
+        for f in sorted(batch_dir.glob("*.csv")):
+            df = pd.read_csv(f)
             if "ingestion_ts" in df.columns:
                 ts = pd.to_datetime(df["ingestion_ts"], utc=True)
                 df = df[ts >= cutoff]
@@ -102,4 +102,5 @@ class DataLoader:
         for col in NUMERICAL_FEATURES:
             if not pd.api.types.is_numeric_dtype(df[col]):
                 raise TypeError(f"Column '{col}' must be numeric, got {df[col].dtype}")
+
 

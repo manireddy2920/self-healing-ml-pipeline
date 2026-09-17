@@ -1,4 +1,4 @@
-"""Module 3 tests — data ingestion and drift injector."""
+﻿"""Module 3 tests â€” data ingestion and drift injector."""
 import os
 import tempfile
 import pytest
@@ -16,7 +16,7 @@ from src.ingestion.generator import (
 from src.ingestion.loader import DataLoader
 
 
-# ── Schema tests ───────────────────────────────────────────────────────────────
+# â”€â”€ Schema tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_all_features_defined():
     assert len(NUMERICAL_FEATURES) > 0
@@ -25,7 +25,7 @@ def test_all_features_defined():
     assert set(ALL_FEATURES) == set(NUMERICAL_FEATURES + CATEGORICAL_FEATURES)
 
 
-# ── Generator tests ────────────────────────────────────────────────────────────
+# â”€â”€ Generator tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_generate_batch_shape():
     df = generate_batch(n=500, seed=1)
@@ -48,21 +48,21 @@ def test_generate_batch_no_nulls_numerical():
 def test_generate_batch_base_fraud_rate():
     df = generate_batch(n=5_000, seed=4, drift_alpha=0.0)
     rate = df[TARGET].mean()
-    # Expect roughly BASE_FRAUD_RATE; allow ±3%
+    # Expect roughly BASE_FRAUD_RATE; allow Â±3%
     assert 0.001 <= rate <= 0.15, f"Unexpected fraud rate: {rate:.4f}"
 
 
 def test_generate_reference_shape():
     with tempfile.TemporaryDirectory() as d:
-        path = f"{d}/reference.parquet"
+        path = f"{d}/reference.csv"
         df = generate_reference(n=2_000, seed=0, output_path=path)
         assert len(df) == 2_000
         assert os.path.exists(path)
-        reloaded = pd.read_parquet(path)
+        reloaded = pd.read_csv(path)
         assert len(reloaded) == 2_000
 
 
-# ── Drift injection tests ──────────────────────────────────────────────────────
+# â”€â”€ Drift injection tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_abrupt_drift_shifts_distribution():
     """Mean of TransactionAmt should be significantly higher after abrupt drift."""
@@ -148,7 +148,7 @@ def test_drift_ground_truth_precision_recall():
     assert sum(not l for l in labels) == start
 
 
-# ── DataLoader tests ───────────────────────────────────────────────────────────
+# â”€â”€ DataLoader tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 def test_dataloader_validate_rejects_missing_column():
     df = generate_batch(n=100, seed=50)
@@ -175,7 +175,7 @@ def test_dataloader_save_and_load():
         # Patch data_dir temporarily
         loader._cfg = type("cfg", (), {
             "data_dir": d,
-            "reference_path": f"{d}/ref.parquet",
+            "reference_path": f"{d}/ref.csv",
             "training_window_days": 30,
         })()
         path = loader.save_batch(df, "test_batch")
@@ -188,7 +188,9 @@ def test_dataloader_recent_window_empty_dir():
     loader._cfg = type("cfg", (), {
         "data_dir": "/nonexistent_path_xyz",
         "training_window_days": 30,
-        "reference_path": "/nonexistent_path_xyz/ref.parquet",
+        "reference_path": "/nonexistent_path_xyz/ref.csv",
     })()
     result = loader.get_recent_window()
     assert result.empty
+
+
