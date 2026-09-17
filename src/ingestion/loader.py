@@ -1,4 +1,4 @@
-"""
+﻿"""
 Data loading and validation.
 
 Handles loading reference data and incoming production batches from parquet,
@@ -24,7 +24,7 @@ class DataLoader:
         self._cfg = get_settings()
         self._reference: Optional[pd.DataFrame] = None
 
-    # ── Reference dataset ──────────────────────────────────────────────────────
+    # â”€â”€ Reference dataset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def load_reference(self, force: bool = False) -> pd.DataFrame:
         if self._reference is not None and not force:
@@ -35,13 +35,13 @@ class DataLoader:
                 f"Reference dataset not found at {path}. "
                 "Run: python -m src.ingestion.generator"
             )
-        self._reference = pd.read_parquet(path)
+        self._reference = pd.read_csv(path) if path.endswith(".csv") else pd.read_parquet(path)
         return self._reference
 
     def invalidate_cache(self):
         self._reference = None
 
-    # ── Production batches ─────────────────────────────────────────────────────
+    # â”€â”€ Production batches â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def load_batch(self, path: str) -> pd.DataFrame:
         df = pd.read_parquet(path)
@@ -85,7 +85,7 @@ class DataLoader:
 
         return pd.concat(frames, ignore_index=True)
 
-    # ── Feature / label split ──────────────────────────────────────────────────
+    # â”€â”€ Feature / label split â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @staticmethod
     def split(df: pd.DataFrame) -> Tuple[pd.DataFrame, Optional[pd.Series]]:
@@ -93,7 +93,7 @@ class DataLoader:
         y = df[TARGET].copy() if TARGET in df.columns else None
         return X, y
 
-    # ── Validation ─────────────────────────────────────────────────────────────
+    # â”€â”€ Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _validate(self, df: pd.DataFrame):
         missing = [c for c in ALL_FEATURES if c not in df.columns]
@@ -102,3 +102,4 @@ class DataLoader:
         for col in NUMERICAL_FEATURES:
             if not pd.api.types.is_numeric_dtype(df[col]):
                 raise TypeError(f"Column '{col}' must be numeric, got {df[col].dtype}")
+

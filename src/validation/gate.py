@@ -137,13 +137,12 @@ class ValidationGate:
         threshold = cfg.promotion_threshold_delta
 
         passes_primary = c_metric >= p_metric - threshold
-        # Critical slice: challenger fraud recall must not regress by >5pp
+        # Critical slice: challenger fraud recall must not regress beyond tolerance
         passes_recall = (
             challenger_metrics.get("recall", 0.0) >=
-            champion_metrics.get("recall", 0.0) - 0.05
+            champion_metrics.get("recall", 0.0) - cfg.recall_regression_tolerance
         )
         promoted = passes_primary and passes_recall
-
         decision_str = "promoted" if promoted else "rejected"
 
         # ── Persist decision ───────────────────────────────────────────────────

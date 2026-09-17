@@ -146,7 +146,7 @@ def plot_promotion_decisions(summary: list):
 
 def plot_avg_f1_bar(summary: list):
     configs = [s["config"] for s in summary]
-    f1s     = [s["avg_f1_post_drift"] or 0 for s in summary]
+    f1s     = [s["avg_f1_on_drifted_batches"] or 0 for s in summary]
     colors  = [COLORS.get(c, "gray") for c in configs]
 
     fig, ax = plt.subplots(figsize=(6, 4))
@@ -234,3 +234,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

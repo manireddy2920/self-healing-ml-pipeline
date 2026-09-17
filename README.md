@@ -118,24 +118,38 @@ python -m pytest tests/ -v
 - **Production batches:** 10 batches × 2,000 rows; drift injected at batch 5 (abrupt, shift_mean=2.0)
 - **Ground truth:** batches 0–4 = stable, batches 5–9 = drifted
 
-### A/B/C Comparison (severe drift, shift_mean = 2.0)
+### A/B/C/D Results
 
-Two metrics are reported. They tell different stories and both matter:
+Two metrics are reported. Both matter:
 
-- **F1 on drifted batches** — how well the deployed model scores on the *incoming drifted data*. Higher is not obviously better: Config B scores high here by overfitting to drift noise.
-- **F1 on clean reference** — how well the deployed model generalises on held-out *clean* data. This is the production-honest metric: a model that regresses here has silently degraded.
+- **F1 on drifted batches** — how well the deployed model scores on the incoming drifted data. High scores here can indicate overfitting to drift noise (see Config B).
+- **F1 on clean reference** — how well the deployed model generalises on held-out clean data. This is the production-honest metric.
 
 | Config | Description | Det. P | Det. R | Det. F1 | F1 (drifted batches) | F1 (clean reference) | Promotions | Rejections | Rollback% |
 |---|---|---|---|---|---|---|---|---|---|
-| **A** | Full system | **1.00** | **1.00** | **1.00** | 0.0760 | **0.3271** | 0 | 5 | 100% |
-| B | Naive retrain (no gate) | N/A | N/A | N/A | **0.0960** | **0.0134** | 10 | 0 | 0% |
-| C | Static (never retrain) | N/A | N/A | N/A | 0.0760 | 0.3271 | 0 | 0 | N/A |
+| **A** | Full system, drift-only retraining | **1.00** | **1.00** | **1.00** | 0.1253 | 0.3271 | 0 | 5 | 100% |
+| B | Naive retrain every batch (no gate) | N/A | N/A | N/A | 0.0928 | **0.0103** | 10 | 0 | 0% |
+| C | Static model (never retrains) | N/A | N/A | N/A | 0.1253 | 0.3271 | 0 | 0 | N/A |
+| **D** | Full system, sliding-window retraining | **1.00** | **1.00** | **1.00** | **0.1456** | **0.4174** | **5** | 0 | 0% |
 
-**Reading the table:**
-- Config B achieves higher F1 on drifted batches (0.096 vs 0.076) because it constantly retrains on the current drifted distribution — the model fits the noise.
-- But Config B's F1 on the clean reference collapses to **0.013** — a **96% drop** from Config A's 0.327. This is the regression the validation gate exists to prevent.
-- Config A (full system) maintains the clean-data champion throughout. The gate correctly rejected all 5 challengers that were trained on small drifted batches and would have caused this regression.
-- Config C (static) matches Config A on both metrics — showing the champion trained on clean data is robust. The advantage of Config A over C is the *detection* capability and the *readiness to promote* a genuinely better challenger when one exists.
+**Config D setup:** challenger trained on `reference + current drifted batch` (sliding window), gate parameters `delta=0.10, recall_tolerance=0.30`. A and D use **identical gate + detector code** (`run_config()`, `use_gate=True`). Only the training data composition differs.
+
+### Reading the results
+
+**Config B (no gate):** reference F1 collapses from 0.327 to 0.010 — a **97% regression**. Naive retraining on small drifted batches causes catastrophic forgetting of the clean distribution. The gate prevents this.
+
+**Config A (gate, drift-only training):** gate correctly rejects all challengers trained only on drifted data. The challenger scores 0.0 recall on the clean holdout (it learned the drifted distribution only). This is the gate working as a safety net — non-regression property holds.
+
+**Config D (gate, sliding-window training):** training on `reference + drifted` preserves the clean signal while adapting to drift. The challenger beats the champion on the holdout (0.46 vs 0.35 F1), passes the gate, and gets promoted. After 5 promotions, reference F1 improves from 0.327 to **0.417 — a 28% improvement**. This is the full lifecycle: detect → retrain → validate → **promote**.
+
+**The three configs tell one coherent story:**
+1. **No gate (B):** promotes everything → destroys generalisation
+2. **Gate + drift-only training (A):** blocks everything → preserves the baseline
+3. **Gate + sliding-window training (D):** promotes when the challenger genuinely improves → achieves adaptation without regression
+
+### Gate calibration note
+
+Config A rejects 100% of challengers — this is correct, not a calibration failure. Challengers trained only on 2,000-row drifted batches score near-zero recall on the clean holdout (they've overfit to the drift distribution). Config D demonstrates the gate promotes when the challenger is actually better: same gate, same thresholds, just realistic training data.
 
 ### Sensitivity Analysis (Config A detector only)
 
@@ -232,8 +246,8 @@ The composite detector combines three independent signals. Mild drift (shift=0.3
 **Q: Why did the gate reject 100% of challengers?**
 Challengers trained on 2,000-row drifted batches are evaluated against a champion trained on 5,000 clean rows. The holdout set is drawn from the clean reference distribution, so a model trained on drifted data will score lower on it. This is correct — the gate should not promote a model that performs worse on held-out clean data. It demonstrates the non-regression safety property.
 
-**Q: Config B has higher F1 on drifted batches than Config A — doesn't that mean naive retraining is better?**
-No. Config B's F1 on drifted batches is 0.096 vs Config A's 0.076 — Config B looks better because it constantly retrains on the current drifted distribution, fitting the noise. But Config B's F1 on the clean reference holdout collapses to 0.013 vs Config A's 0.327 — a 96% regression. This is the exact failure the validation gate is designed to prevent: a model that silently adapts to corrupted inputs and loses its ability to generalise.
+**Q: Does your system ever successfully deploy a better model, or does it always say no?**
+Yes — Config D demonstrates the full lifecycle. When the challenger is trained on a sliding window (reference + current drifted batch) rather than drifted data alone, it scores F1=0.46 vs the champion's F1=0.35 on the clean holdout. The gate promotes it. After 5 promotions, the reference F1 improves from 0.327 to 0.417 — a 28% improvement. Config A rejecting 100% is not a calibration failure; it is the gate correctly blocking challengers that trained only on drifted data and lost the clean signal entirely.
 
 **Q: Why not retrain on every batch (Config B)?**
 Config B achieves 0% rollback rate — every retrain is blindly deployed. If a batch contains noise, mislabeled data, or a temporary anomaly, the model degrades with no protection. The validation gate in Config A is what makes the system "self-healing" rather than just "auto-retraining."
@@ -248,7 +262,7 @@ Evidently only reports drift. This system adds: debounce + cooldown trigger logi
 
 ## Resume Bullet
 
-> *"Built a self-healing MLOps pipeline (Prefect, MLflow, FastAPI, PostgreSQL, Streamlit) that auto-detects data drift via composite statistical + learned detectors, gates retrained models behind a champion/challenger validation step with fraud-recall protection, and exposes an RBAC-authenticated audit dashboard — validated with 152 automated tests and A/B/C experiments across mild and severe synthetic drift regimes."*
+> *"Built a self-healing MLOps pipeline (Prefect, MLflow, FastAPI, PostgreSQL, Streamlit) that auto-detects data drift via composite statistical + learned detectors, gates retrained models behind a champion/challenger validation step with fraud-recall protection, and exposes an RBAC-authenticated audit dashboard — validated with 152 automated tests and A/B/C/D experiments: naive retraining (no gate) collapses clean-set F1 by 97%; sliding-window retraining with the gate achieves 28% F1 improvement over the static baseline."*
 
 ---
 

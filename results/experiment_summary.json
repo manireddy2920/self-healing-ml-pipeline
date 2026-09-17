@@ -8,7 +8,7 @@
     "total_promotions": 0,
     "total_rejections": 5,
     "rollback_rate": 1.0,
-    "avg_f1_on_drifted_batches": 0.076,
+    "avg_f1_on_drifted_batches": 0.1253,
     "avg_f1_on_reference": 0.3271
   },
   {
@@ -16,12 +16,12 @@
     "detector_precision": null,
     "detector_recall": null,
     "detector_f1": null,
-    "detection_lag_batches": null,
+    "detection_lag_batches": 0,
     "total_promotions": 10,
     "total_rejections": 0,
     "rollback_rate": 0.0,
-    "avg_f1_on_drifted_batches": 0.096,
-    "avg_f1_on_reference": 0.0134
+    "avg_f1_on_drifted_batches": 0.0928,
+    "avg_f1_on_reference": 0.0103
   },
   {
     "config": "C",
@@ -32,7 +32,19 @@
     "total_promotions": 0,
     "total_rejections": 0,
     "rollback_rate": null,
-    "avg_f1_on_drifted_batches": 0.076,
+    "avg_f1_on_drifted_batches": 0.1253,
     "avg_f1_on_reference": 0.3271
+  },
+  {
+    "config": "D",
+    "detector_precision": 1.0,
+    "detector_recall": 1.0,
+    "detector_f1": 1.0,
+    "detection_lag_batches": 0,
+    "total_promotions": 5,
+    "total_rejections": 0,
+    "rollback_rate": 0.0,
+    "avg_f1_on_drifted_batches": 0.1456,
+    "avg_f1_on_reference": 0.4174
   }
 ]

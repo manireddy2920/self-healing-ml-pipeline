@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     # Retraining / Validation
     validation_metric: str = "f1"
     promotion_threshold_delta: float = 0.0
+    recall_regression_tolerance: float = 0.05   # max allowed recall drop on holdout
     max_consecutive_failures: int = 3
     training_window_days: int = 30
 
