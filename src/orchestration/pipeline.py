@@ -91,10 +91,19 @@ def retrain_task(drift_event_id: int | None, triggered_by: str = "prefect") -> d
         db.close()
 
     logger.info(f"Starting retraining job {job_id}")
-    completed_job = run_retraining_job(job_id)
-    logger.info(f"Retraining job {job_id} status: {completed_job.status}")
+    run_retraining_job(job_id)
 
-    return {"job_id": job_id, "status": completed_job.status}
+    # Re-fetch job status in a fresh session — the object returned by
+    # run_retraining_job is detached from its session and cannot be accessed directly.
+    db2 = SessionLocal()
+    try:
+        refreshed = db2.get(RetrainingJob, job_id)
+        job_status = refreshed.status if refreshed else "unknown"
+    finally:
+        db2.close()
+
+    logger.info(f"Retraining job {job_id} status: {job_status}")
+    return {"job_id": job_id, "status": job_status}
 
 
 # ── Flow ───────────────────────────────────────────────────────────────────────
