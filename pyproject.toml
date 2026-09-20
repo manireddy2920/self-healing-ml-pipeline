@@ -23,7 +23,7 @@ dependencies = [
     "dvc==3.49.0",
     # FastAPI
     "fastapi==0.110.1",
-    "uvicorn[standard]==0.29.0",
+    "uvicorn[standard]>=0.28.0,!=0.29.0",
     "python-multipart==0.0.9",
     "pydantic==2.7.0",
     "pydantic-settings==2.2.1",

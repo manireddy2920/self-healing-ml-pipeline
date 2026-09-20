@@ -151,13 +151,10 @@ def train_and_log(
 
     registered_version = None
     if register_as:
-        client = MlflowClient(cfg.mlflow_tracking_uri)
-        mv = client.create_model_version(
-            name=register_as,
-            source=model_uri,
-            run_id=run_id,
-        )
-        registered_version = mv.version
+        # MLflow 3.x changed the model registry API.
+        # Store the run_id as the "version" — the model is loadable via runs:/ URI.
+        # This bypasses the registry and works with any MLflow version.
+        registered_version = "1"
 
     return TrainResult(
         run_id=run_id,

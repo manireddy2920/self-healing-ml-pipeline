@@ -26,8 +26,12 @@ services:
       mlflow server
       --host 0.0.0.0
       --port 5000
-      --backend-store-uri postgresql+psycopg2://shlp:shlp_secret@postgres:5432/shlp
+      --backend-store-uri postgresql+psycopg2://shlp:shlp_secret@postgres:5432/mlflow
       --default-artifact-root /app/mlruns
+      --allowed-hosts "*"
+    environment:
+      MLFLOW_SERVER_ALLOWED_HOSTS: "*"
+      FORWARDED_ALLOW_IPS: "*"
     volumes:
       - mlflow_artifacts:/app/mlruns
     ports:
